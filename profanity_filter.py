@@ -30,24 +30,24 @@ with st.form("options"):
     link = st.text_input('Enter your YouTube video link', 'https://youtu.be/E6M-XUW4xYY')
    
    # Every form must have a submit button.
-    st.form_submit_button("Submit")
+    submitted = st.form_submit_button("Submit")
+    if submitted:
+        # Submits the YouTube link to be transcribed by AssemblyAI
+        polling_endpoint, file = util.transcribe_from_link(link, auth_key)
 
-# Submits the YouTube link to be transcribed by AssemblyAI
-polling_endpoint, file = util.transcribe_from_link(link, auth_key)
+        # Changes status to 'submitted'
+        st.session_state['status'] = 'submitted'
 
-# Changes status to 'submitted'
-st.session_state['status'] = 'submitted'
+        # Repeatedly poll the transcript until it is completed
+        util.poll(polling_endpoint, auth_key)
 
-# Repeatedly poll the transcript until it is completed
-util.poll(polling_endpoint, auth_key)
+        # Sets the 
+        st.session_state['status'] = util.get_status(polling_endpoint, auth_key)
 
-# Sets the 
-st.session_state['status'] = util.get_status(polling_endpoint, auth_key)
+        #
+        st.text("The transcription is " + st.session_state['status'])
 
-#
-st.text("The transcription is " + st.session_state['status'])
-
-if st.session_state['status']=='completed':
-    polling_response = requests.get(polling_endpoint, headers=headers)
-    transcript = polling_response.json()
-    st.audio(util.censor_profanity(transcript, file, beep))
+        if st.session_state['status']=='completed':
+            polling_response = requests.get(polling_endpoint, headers=headers)
+            transcript = polling_response.json()
+            st.audio(util.censor_profanity(transcript, file, beep))
